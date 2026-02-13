@@ -7,11 +7,14 @@ const supabase = createClient(
     process.env.VITE_SUPABASE_ANON_KEY
 );
 
-export default async function handler(req, res) {
+export const handler = async (event) => {
     // 1. Security Check
-    const authHeader = req.headers.authorization;
+    const authHeader = event.headers.authorization;
     if (authHeader !== `Bearer ${process.env.API_SECRET_KEY}`) {
-        return res.status(401).json({ error: 'Unauthorized' });
+        return {
+            statusCode: 401,
+            body: JSON.stringify({ error: 'Unauthorized' })
+        };
     }
 
     try {
@@ -34,7 +37,10 @@ export default async function handler(req, res) {
         if (error) throw error;
 
         if (!appointments || appointments.length === 0) {
-            return res.status(200).json({ message: 'No upcoming appointments found in this window.' });
+            return {
+                statusCode: 200,
+                body: JSON.stringify({ message: 'No upcoming appointments found in this window.' })
+            };
         }
 
         const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -70,13 +76,19 @@ export default async function handler(req, res) {
             }
         }));
 
-        return res.status(200).json({
-            processed: appointments.length,
-            results
-        });
+        return {
+            statusCode: 200,
+            body: JSON.stringify({
+                processed: appointments.length,
+                results
+            })
+        };
 
     } catch (error) {
         console.error('Reminder error:', error);
-        return res.status(500).json({ error: 'Internal Server Error', details: error.message });
+        return {
+            statusCode: 500,
+            body: JSON.stringify({ error: 'Internal Server Error', details: error.message })
+        };
     }
-}
+};

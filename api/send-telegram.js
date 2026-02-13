@@ -2,22 +2,38 @@ import axios from 'axios';
 import dotenv from 'dotenv';
 dotenv.config();
 
-export default async function handler(req, res) {
-    if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method Not Allowed' });
+export const handler = async (event) => {
+    if (event.httpMethod !== 'POST') {
+        return {
+            statusCode: 405,
+            body: JSON.stringify({ error: 'Method Not Allowed' })
+        };
     }
 
-    const { patientName, tipoAtencion, diagnostico, type, date, time, motivo } = req.body;
+    let body;
+    try {
+        body = JSON.parse(event.body);
+    } catch (e) {
+        return {
+            statusCode: 400,
+            body: JSON.stringify({ error: 'Invalid JSON body' })
+        };
+    }
+
+    const { patientName, tipoAtencion, diagnostico, type, date, time, motivo } = body;
     const finalMotivo = motivo || diagnostico || 'Consulta General';
 
     const token = process.env.TELEGRAM_BOT_TOKEN;
     const chatId = process.env.MY_CHAT_ID;
 
     if (!token || !chatId) {
-        return res.status(500).json({
-            error: 'Configuración de Telegram incompleta',
-            details: 'TELEGRAM_BOT_TOKEN o MY_CHAT_ID no están definidos.'
-        });
+        return {
+            statusCode: 500,
+            body: JSON.stringify({
+                error: 'Configuración de Telegram incompleta',
+                details: 'TELEGRAM_BOT_TOKEN o MY_CHAT_ID no están definidos.'
+            })
+        };
     }
 
     const getInitials = (name) => {
@@ -81,12 +97,18 @@ export default async function handler(req, res) {
             parse_mode: 'HTML'
         });
 
-        return res.status(200).json({ success: true, sid: response.data.result.message_id });
+        return {
+            statusCode: 200,
+            body: JSON.stringify({ success: true, sid: response.data.result.message_id })
+        };
     } catch (error) {
         console.error('Telegram API Error:', error.response?.data || error.message);
-        return res.status(500).json({
-            error: 'Error al enviar mensaje a Telegram',
-            details: error.response?.data?.description || error.message
-        });
+        return {
+            statusCode: 500,
+            body: JSON.stringify({
+                error: 'Error al enviar mensaje a Telegram',
+                details: error.response?.data?.description || error.message
+            })
+        };
     }
-}
+};
