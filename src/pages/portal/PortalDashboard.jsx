@@ -127,14 +127,18 @@ export default function PortalDashboard() {
 
     const [editingAppointment, setEditingAppointment] = useState(null);
 
-    const fetchAppointments = async (userId) => {
+    const fetchAppointments = async () => {
         try {
+            const { data: { user: authUser } } = await supabase.auth.getUser();
+            if (!authUser) return;
+
             const { data } = await supabase
                 .from('citas')
                 .select(`
                     *,
-                    pacientes (nombre)
+                    pacientes (nombre, cedula)
                 `)
+                .eq('doctor_id', authUser.id) // PRIVACY FIX
                 .order('fecha', { ascending: true })
                 .order('hora', { ascending: true });
 
@@ -144,21 +148,42 @@ export default function PortalDashboard() {
         }
     };
 
-    const handleSaveAppointment = async (formData) => {
+    const handleSaveAppointment = async (formData, isNewPatient) => {
         try {
-            let error;
+            const { data: { user: authUser } } = await supabase.auth.getUser();
+            if (!authUser) throw new Error("Sesión no válida");
+
+            let finalPacienteId = formData.paciente_id;
             let actionType = 'NEW_APPOINTMENT';
 
+            // 1. Create patient if needed
+            if (isNewPatient && !editingAppointment) {
+                const { data: newP, error: pError } = await supabase
+                    .from('pacientes')
+                    .insert([{
+                        nombre: formData.nombre_nuevo,
+                        cedula: formData.documento_nuevo,
+                        doctor_id: authUser.id
+                    }])
+                    .select()
+                    .single();
+
+                if (pError) throw pError;
+                finalPacienteId = newP.id;
+            }
+
+            let error;
             if (editingAppointment) {
                 actionType = 'RESCHEDULE';
                 const { error: updateError } = await supabase
                     .from('citas')
                     .update({
-                        paciente_id: formData.paciente_id,
+                        paciente_id: finalPacienteId,
                         fecha: formData.fecha,
                         hora: formData.hora,
                         motivo: formData.motivo,
-                        estado: formData.estado
+                        estado: formData.estado,
+                        doctor_id: authUser.id
                     })
                     .eq('id', editingAppointment.id);
                 error = updateError;
@@ -166,23 +191,24 @@ export default function PortalDashboard() {
                 const { error: insertError } = await supabase
                     .from('citas')
                     .insert([{
-                        paciente_id: formData.paciente_id,
+                        paciente_id: finalPacienteId,
                         fecha: formData.fecha,
                         hora: formData.hora,
                         motivo: formData.motivo,
-                        estado: formData.estado
+                        estado: formData.estado,
+                        doctor_id: authUser.id
                     }]);
                 error = insertError;
             }
 
             if (error) throw error;
 
-            notifyTelegramChange(formData, actionType);
+            notifyTelegramChange(formData, actionType, isNewPatient ? formData.nombre_nuevo : null);
             alert(editingAppointment ? 'Cita actualizada' : 'Cita creada');
-            fetchAppointments(user.id);
+            fetchAppointments();
         } catch (err) {
             console.error("Error saving appointment:", err);
-            throw err;
+            alert("Error: " + err.message);
         }
     };
 

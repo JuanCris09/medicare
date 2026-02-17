@@ -6,8 +6,11 @@ import { supabase } from '../lib/supabaseClient';
 export default function AppointmentModal({ isOpen, onClose, onSave, appointmentToEdit = null }) {
     const [patients, setPatients] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [isNewPatient, setIsNewPatient] = useState(false);
     const [formData, setFormData] = useState({
         paciente_id: '',
+        nombre_nuevo: '',
+        documento_nuevo: '',
         fecha: '',
         hora: '',
         motivo: '',
@@ -20,28 +23,38 @@ export default function AppointmentModal({ isOpen, onClose, onSave, appointmentT
             if (appointmentToEdit) {
                 setFormData({
                     paciente_id: appointmentToEdit.paciente_id,
+                    nombre_nuevo: '',
+                    documento_nuevo: '',
                     fecha: appointmentToEdit.fecha,
                     hora: appointmentToEdit.hora,
                     motivo: appointmentToEdit.motivo,
                     estado: appointmentToEdit.estado
                 });
+                setIsNewPatient(false);
             } else {
                 // Reset form for new appointment
                 setFormData({
                     paciente_id: '',
+                    nombre_nuevo: '',
+                    documento_nuevo: '',
                     fecha: new Date().toISOString().split('T')[0],
                     hora: '09:00',
                     motivo: '',
                     estado: 'Pendiente'
                 });
+                setIsNewPatient(false);
             }
         }
     }, [isOpen, appointmentToEdit]);
 
     const fetchPatients = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
         const { data, error } = await supabase
             .from('pacientes')
             .select('id, nombre, cedula')
+            .eq('doctor_id', user.id) // PRIVACY FIX
             .order('nombre');
 
         if (error) console.error('Error fetching patients:', error);
@@ -52,7 +65,7 @@ export default function AppointmentModal({ isOpen, onClose, onSave, appointmentT
         e.preventDefault();
         setIsLoading(true);
         try {
-            await onSave(formData);
+            await onSave(formData, isNewPatient);
             onClose();
         } catch (error) {
             alert('Error al guardar la cita: ' + error.message);
@@ -95,28 +108,80 @@ export default function AppointmentModal({ isOpen, onClose, onSave, appointmentT
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-5">
 
-                    {/* Patient Select */}
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Paciente</label>
-                        <div className="relative group">
-                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-medical-600 transition-colors">
-                                <User size={18} />
+                    {/* New Patient Toggle (Only for New Appointments) */}
+                    {!appointmentToEdit && (
+                        <div className="flex items-center justify-between p-4 bg-medical-50 rounded-2xl border border-medical-100 mb-4">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-medical-600 shadow-sm">
+                                    <User size={20} />
+                                </div>
+                                <div>
+                                    <p className="font-bold text-medical-900 text-sm">Nuevo Paciente</p>
+                                    <p className="text-[10px] text-medical-600 font-medium">Paciente no registrado aún</p>
+                                </div>
                             </div>
-                            <select
-                                required
-                                value={formData.paciente_id}
-                                onChange={(e) => setFormData({ ...formData, paciente_id: e.target.value })}
-                                className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-50 border border-slate-200 font-bold text-slate-700 focus:ring-2 focus:ring-medical-500 focus:border-transparent outline-none transition-all appearance-none"
+                            <button
+                                type="button"
+                                onClick={() => setIsNewPatient(!isNewPatient)}
+                                className={`w-12 h-6 rounded-full transition-colors relative ${isNewPatient ? 'bg-medical-500' : 'bg-slate-300'}`}
                             >
-                                <option value="">Seleccionar Paciente...</option>
-                                {patients.map(p => (
-                                    <option key={p.id} value={p.id}>
-                                        {p.nombre} (ID: {p.cedula})
-                                    </option>
-                                ))}
-                            </select>
+                                <motion.div
+                                    animate={{ x: isNewPatient ? 26 : 2 }}
+                                    className="absolute top-1 bg-white w-4 h-4 rounded-full shadow-sm"
+                                />
+                            </button>
                         </div>
-                    </div>
+                    )}
+
+                    {isNewPatient ? (
+                        <div className="space-y-4">
+                            <div className="space-y-1">
+                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Nombre Completo</label>
+                                <input
+                                    type="text"
+                                    required
+                                    placeholder="Ej: Pedro Pérez"
+                                    value={formData.nombre_nuevo}
+                                    onChange={(e) => setFormData({ ...formData, nombre_nuevo: e.target.value })}
+                                    className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-medical-500"
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Documento / Cédula</label>
+                                <input
+                                    type="text"
+                                    required
+                                    placeholder="Número de identificación"
+                                    value={formData.documento_nuevo}
+                                    onChange={(e) => setFormData({ ...formData, documento_nuevo: e.target.value })}
+                                    className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-medical-500"
+                                />
+                            </div>
+                        </div>
+                    ) : (
+                        /* Patient Select */
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Paciente</label>
+                            <div className="relative group">
+                                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-medical-600 transition-colors">
+                                    <User size={18} />
+                                </div>
+                                <select
+                                    required
+                                    value={formData.paciente_id}
+                                    onChange={(e) => setFormData({ ...formData, paciente_id: e.target.value })}
+                                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-50 border border-slate-200 font-bold text-slate-700 focus:ring-2 focus:ring-medical-500 focus:border-transparent outline-none transition-all appearance-none"
+                                >
+                                    <option value="">Seleccionar Paciente...</option>
+                                    {patients.map(p => (
+                                        <option key={p.id} value={p.id}>
+                                            {p.nombre} (ID: {p.cedula})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="grid grid-cols-2 gap-4">
                         {/* Date */}

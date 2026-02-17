@@ -73,7 +73,7 @@ export default function Landing() {
                 </div>
                 <div className="flex items-center gap-6">
                     <button
-                        onClick={() => navigate('/dashboard')}
+                        onClick={() => navigate('/doctor-login')}
                         className="text-sm font-bold text-slate-600 hover:text-medical-600 transition-colors"
                     >
                         Iniciar Sesión
@@ -107,10 +107,10 @@ export default function Landing() {
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4 pt-4">
                             <button
-                                onClick={scrollToForm}
+                                onClick={() => navigate('/dashboard')}
                                 className="bg-medical-600 text-white px-10 py-5 rounded-2xl font-black text-lg shadow-2xl shadow-medical-600/30 flex items-center justify-center gap-3 hover:scale-105 transition-all"
                             >
-                                Probar Ahora Gratis <ArrowRight size={20} />
+                                Probar DEMO <ArrowRight size={20} />
                             </button>
                             <div className="flex items-center gap-4 px-6 py-4 rounded-2xl bg-white border border-slate-100 shadow-sm">
                                 <div className="flex -space-x-2">

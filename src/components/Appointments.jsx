@@ -4,35 +4,46 @@ import AppointmentModal from './AppointmentModal';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabaseClient';
 
-export default function Appointments() {
+const DEMO_DOCTOR_ID = '00000000-0000-0000-0000-000000000000';
+
+export default function Appointments({ forcedDoctorId = null }) {
     const [appointments, setAppointments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [patients, setPatients] = useState([]);
     const [searchPatient, setSearchPatient] = useState('');
-    const [newAppt, setNewAppt] = useState({
-        paciente_id: '',
-        nombre_paciente: '',
-        fecha: '',
-        hora: '',
-        motivo: ''
-    });
+    const [doctorId, setDoctorId] = useState(forcedDoctorId);
     const [editingAppointment, setEditingAppointment] = useState(null);
     const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
-        fetchAppointments();
-        fetchPatients();
-    }, []);
+        const init = async () => {
+            if (!forcedDoctorId) {
+                const { data: { user } } = await supabase.auth.getUser();
+                setDoctorId(user?.id || DEMO_DOCTOR_ID);
+            }
+        };
+        init();
+    }, [forcedDoctorId]);
+
+    useEffect(() => {
+        if (doctorId) {
+            fetchAppointments();
+            fetchPatients();
+        }
+    }, [doctorId]);
 
     const fetchAppointments = async () => {
+        if (!doctorId) return;
         setLoading(true);
+
         const { data, error } = await supabase
             .from('citas')
             .select(`
                 *,
                 pacientes (nombre)
             `)
+            .eq('doctor_id', doctorId) // PRIVACY FIX
             .order('fecha', { ascending: true })
             .order('hora', { ascending: true });
 
@@ -41,13 +52,45 @@ export default function Appointments() {
     };
 
     const fetchPatients = async () => {
-        const { data } = await supabase.from('pacientes').select('id, nombre');
+        if (!doctorId) return;
+        const { data } = await supabase
+            .from('pacientes')
+            .select('id, nombre')
+            .eq('doctor_id', doctorId); // PRIVACY FIX
+
         if (data) setPatients(data);
     };
 
-    const handleSaveAppointment = async (formData) => {
+    const handleSaveAppointment = async (formData, isNewPatient) => {
+        if (!doctorId) {
+            alert("Error: No se pudo identificar al doctor.");
+            return;
+        }
         setIsSaving(true);
         try {
+            let finalPacienteId = formData.paciente_id;
+            let patientName = '';
+
+            // 1. Create patient if new
+            if (isNewPatient && !editingAppointment) {
+                const { data: newPatient, error: pError } = await supabase
+                    .from('pacientes')
+                    .insert([{
+                        nombre: formData.nombre_nuevo,
+                        cedula: formData.documento_nuevo,
+                        doctor_id: doctorId
+                    }])
+                    .select()
+                    .single();
+
+                if (pError) throw pError;
+                finalPacienteId = newPatient.id;
+                patientName = newPatient.nombre;
+            } else {
+                const patient = patients.find(p => p.id === formData.paciente_id);
+                patientName = patient?.nombre || 'Paciente';
+            }
+
             let error;
             let actionType = 'NEW_APPOINTMENT';
 
@@ -56,11 +99,12 @@ export default function Appointments() {
                 const { error: updateError } = await supabase
                     .from('citas')
                     .update({
-                        paciente_id: formData.paciente_id,
+                        paciente_id: finalPacienteId,
                         fecha: formData.fecha,
                         hora: formData.hora,
                         motivo: formData.motivo,
-                        estado: formData.estado
+                        estado: formData.estado,
+                        doctor_id: doctorId
                     })
                     .eq('id', editingAppointment.id);
                 error = updateError;
@@ -68,11 +112,12 @@ export default function Appointments() {
                 const { error: insertError } = await supabase
                     .from('citas')
                     .insert([{
-                        paciente_id: formData.paciente_id,
+                        paciente_id: finalPacienteId,
                         fecha: formData.fecha,
                         hora: formData.hora,
                         motivo: formData.motivo,
-                        estado: formData.estado || 'Pendiente'
+                        estado: formData.estado || 'Pendiente',
+                        doctor_id: doctorId
                     }]);
                 error = insertError;
             }
@@ -81,13 +126,12 @@ export default function Appointments() {
 
             // Send Telegram
             try {
-                const patient = patients.find(p => p.id === formData.paciente_id);
                 await fetch('/api/send-telegram', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         type: actionType,
-                        patientName: patient?.nombre || 'Paciente',
+                        patientName: patientName,
                         date: formData.fecha,
                         time: formData.hora,
                         motivo: formData.motivo
@@ -100,6 +144,7 @@ export default function Appointments() {
             setIsModalOpen(false);
             setEditingAppointment(null);
             fetchAppointments();
+            fetchPatients(); // Refresh list to include new patient
         } catch (err) {
             console.error("Error saving appointment:", err);
             alert("Error: " + err.message);
@@ -201,32 +246,34 @@ export default function Appointments() {
                                 key={appt.id}
                                 className="bg-white p-6 rounded-[2rem] border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-6 hover:shadow-lg transition-all group"
                             >
-                                <div className="flex items-center gap-5">
-                                    <div className="w-16 h-16 bg-slate-50 text-slate-400 rounded-2xl flex flex-col items-center justify-center shrink-0 border border-slate-100 group-hover:bg-medical-50 group-hover:text-medical-600 transition-colors">
-                                        <span className="text-[10px] uppercase font-black">{new Date(appt.fecha + 'T12:00:00').toLocaleDateString('es-ES', { month: 'short' })}</span>
-                                        <span className="text-xl font-black leading-none">{new Date(appt.fecha + 'T12:00:00').getDate()}</span>
+                                <div className="flex items-center gap-3 md:gap-5">
+                                    <div className="w-14 h-14 md:w-16 md:h-16 bg-slate-50 text-slate-400 rounded-2xl flex flex-col items-center justify-center shrink-0 border border-slate-100 group-hover:bg-medical-50 group-hover:text-medical-600 transition-colors">
+                                        <span className="text-[9px] md:text-[10px] uppercase font-black">{new Date(appt.fecha + 'T12:00:00').toLocaleDateString('es-ES', { month: 'short' })}</span>
+                                        <span className="text-lg md:text-xl font-black leading-none">{new Date(appt.fecha + 'T12:00:00').getDate()}</span>
                                     </div>
-                                    <div>
-                                        <h4 className="font-black text-slate-800 text-lg">{appt.pacientes?.nombre}</h4>
-                                        <div className="flex items-center gap-3 text-slate-500 text-sm font-medium mt-1">
-                                            <span className="flex items-center gap-1"><Clock size={14} /> {appt.hora}</span>
-                                            <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
-                                            <span className="truncate max-w-[200px]">{appt.motivo}</span>
+                                    <div className="overflow-hidden">
+                                        <h4 className="font-black text-slate-800 text-base md:text-lg truncate">{appt.pacientes?.nombre}</h4>
+                                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-slate-500 text-xs md:text-sm font-medium mt-1">
+                                            <span className="flex items-center gap-1 shrink-0"><Clock size={14} /> {appt.hora}</span>
+                                            <span className="hidden sm:block w-1 h-1 bg-slate-300 rounded-full"></span>
+                                            <span className="truncate max-w-[150px] md:max-w-[200px]">{appt.motivo}</span>
                                         </div>
                                     </div>
                                 </div>
-                                <div className="flex items-center justify-between md:justify-end gap-4">
-                                    {appt.estado === 'Pendiente' && (
-                                        <div className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg border border-indigo-100 animate-pulse">
-                                            <Bell size={12} className="fill-indigo-600" />
-                                            <span className="text-[9px] font-black uppercase tracking-tight">Recordatorio activo</span>
-                                        </div>
-                                    )}
-                                    <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${appt.estado === 'Pendiente' ? 'bg-amber-50 text-amber-600' :
-                                        appt.estado === 'Completada' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'
-                                        }`}>
-                                        {appt.estado}
-                                    </span>
+                                <div className="flex flex-wrap items-center justify-between md:justify-end gap-3 md:gap-4 border-t border-slate-50 md:border-none pt-4 md:pt-0">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        {appt.estado === 'Pendiente' && (
+                                            <div className="flex items-center gap-2 px-2.5 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg border border-indigo-100">
+                                                <Bell size={12} className="fill-indigo-600 shrink-0" />
+                                                <span className="text-[9px] font-black uppercase tracking-tight whitespace-nowrap">Recordatorio activo</span>
+                                            </div>
+                                        )}
+                                        <span className={`px-3 py-1.5 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest ${appt.estado === 'Pendiente' ? 'bg-amber-50 text-amber-600' :
+                                            appt.estado === 'Completada' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'
+                                            }`}>
+                                            {appt.estado}
+                                        </span>
+                                    </div>
                                     <div className="flex items-center gap-2">
                                         <button
                                             onClick={() => {

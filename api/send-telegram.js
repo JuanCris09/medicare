@@ -75,11 +75,13 @@ export const handler = async (event) => {
 🕒 <b>Fecha/Hora:</b> ${date} - ${time}
 📝 <b>Motivo:</b> [DATOS PROTEGIDOS]`;
     } else if (type === 'HISTORY') {
+        const metadataInfo = body.metadata ? `\n🎂 <b>Nacimiento:</b> ${body.metadata.nacimiento || 'N/R'}\n📋 <b>Plan:</b> ${body.metadata.plan || 'N/R'}` : '';
         message = `🏥 <b>NUEVA HISTORIA CLÍNICA</b>
 ---------------------------
 👤 <b>Paciente:</b> ${patientName}
-🦷 <b>Servicio:</b> ${tipoAtencion || 'Consulta General'}
-📝 <b>Hallazgos:</b> ${finalMotivo}
+🆔 <b>Cédula:</b> ${body.dni || 'N/R'}${metadataInfo}
+🏥 <b>Servicio:</b> ${tipoAtencion || 'Consulta General'}
+📝 <b>Resumen:</b> ${finalMotivo}
 📅 <b>Fecha:</b> ${currentDate}`;
     } else {
         message = `🏥 <b>NUEVO REGISTRO (PRIVADO)</b>

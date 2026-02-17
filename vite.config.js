@@ -5,14 +5,14 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
+    port: 5173,
     allowedHosts: [
-      'antonymous-tinisha-lamblike.ngrok-free.dev' // Agrega aquí tu URL de ngrok
+      'antonymous-tinisha-lamblike.ngrok-free.dev'
     ],
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
-        changeOrigin: true,
-        rewrite: (path) => path
+        target: 'http://localhost:5000',
+        changeOrigin: true
       }
     }
   }

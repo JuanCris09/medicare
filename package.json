@@ -5,6 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "api": "node api-server.js",
+    "dev-all": "node scripts/dev-all.js",
+    "full-dev": "vercel dev",
+    "netlify-dev": "netlify dev",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
@@ -23,6 +27,7 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.13.0",
+    "resend": "^6.9.2",
     "tailwind-merge": "^3.4.0",
     "tesseract.js": "^7.0.0",
     "twilio": "^5.12.1"

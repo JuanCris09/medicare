@@ -26,6 +26,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+const DEMO_DOCTOR_ID = '00000000-0000-0000-0000-000000000000';
+
 export default function Dashboard() {
     const [activeTab, setActiveTab] = useState('Inicio');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -40,10 +42,11 @@ export default function Dashboard() {
     const fetchPatients = async () => {
         try {
             setLoading(true);
-            // Fetch patients
+            // Fetch patients only for Demo Doctor
             const { data: patientsData, error: patientsError } = await supabase
                 .from('pacientes')
-                .select('id, nombre, created_at') // Removed diagnostico
+                .select('id, nombre, created_at')
+                .eq('doctor_id', DEMO_DOCTOR_ID)
                 .order('created_at', { ascending: false });
 
             if (patientsError) throw patientsError;
@@ -100,35 +103,35 @@ export default function Dashboard() {
             />
 
             <main className="flex-1 flex flex-col relative overflow-hidden">
-                <header className="h-20 bg-white border-b border-slate-200 px-6 lg:px-10 flex items-center justify-between sticky top-0 z-30">
-                    <div className="flex items-center gap-4 md:hidden mr-4">
+                <header className="h-16 md:h-20 bg-white border-b border-slate-200 px-4 md:px-6 lg:px-10 flex items-center justify-between sticky top-0 z-30">
+                    <div className="flex items-center gap-2 md:gap-4 md:hidden mr-2 md:mr-4">
                         <button
                             onClick={() => setIsSidebarOpen(true)}
-                            className="p-3 -ml-2 bg-slate-50 text-medical-600 border border-slate-200 rounded-2xl transition-all active:scale-95 shadow-sm flex items-center justify-center hover:bg-white"
+                            className="p-2 md:p-3 bg-slate-50 text-medical-600 border border-slate-200 rounded-xl md:rounded-2xl transition-all active:scale-95 shadow-sm flex items-center justify-center hover:bg-white"
                         >
-                            <Menu size={20} strokeWidth={2.5} />
+                            <Menu size={18} md:size={20} strokeWidth={2.5} />
                         </button>
                     </div>
 
                     <div className="flex-1 max-w-xl">
                         <div className="relative group">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-medical-600 transition-colors" size={18} />
+                            <Search className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-medical-600 transition-colors" size={16} />
                             <input
                                 type="text"
-                                placeholder="Buscar pacientes por nombre o ID..."
-                                className="w-full bg-slate-50 border-transparent focus:bg-white focus:ring-4 focus:ring-medical-100 focus:border-medical-600 rounded-2xl py-3 pl-12 pr-4 outline-none transition-all text-sm font-medium"
+                                placeholder="Buscar..."
+                                className="w-full bg-slate-50 border-transparent focus:bg-white focus:ring-4 focus:ring-medical-100 focus:border-medical-600 rounded-xl md:rounded-2xl py-2 md:py-3 pl-10 md:pl-12 pr-4 outline-none transition-all text-xs md:text-sm font-medium"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-4 ml-6">
-                        <button className="w-10 h-10 rounded-xl hover:bg-slate-50 flex items-center justify-center relative transition-colors text-slate-500">
-                            <Bell size={20} />
-                            <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white"></span>
+                    <div className="flex items-center gap-2 md:gap-4 ml-3 md:ml-6">
+                        <button className="w-8 h-8 md:w-10 md:h-10 rounded-xl hover:bg-slate-50 flex items-center justify-center relative transition-colors text-slate-500">
+                            <Bell size={18} md:size={20} />
+                            <span className="absolute top-1.5 md:top-2 right-1.5 md:right-2 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white"></span>
                         </button>
-                        <div className="w-10 h-10 rounded-xl bg-medical-50 text-medical-600 flex items-center justify-center font-bold text-xs uppercase">
+                        <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-medical-50 text-medical-600 flex items-center justify-center font-bold text-[10px] md:text-xs uppercase">
                             JP
                         </div>
                     </div>
@@ -142,36 +145,36 @@ export default function Dashboard() {
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -10 }}
-                                className="max-w-7xl mx-auto space-y-10"
+                                className="max-w-7xl mx-auto space-y-6 md:space-y-10"
                             >
-                                <section className="relative overflow-hidden rounded-[2.5rem] bg-slate-900 px-8 py-12 lg:p-16 text-white shadow-2xl border border-slate-800">
+                                <section className="relative overflow-hidden rounded-[1.5rem] md:rounded-[2.5rem] bg-slate-900 px-6 py-10 md:px-8 md:py-12 lg:p-16 text-white shadow-2xl border border-slate-800">
                                     <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-medical-600/20 to-transparent pointer-events-none"></div>
                                     <div className="relative z-10 max-w-2xl">
-                                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-medical-500/10 border border-medical-500/20 text-medical-300 text-[10px] font-black uppercase tracking-[0.2em] mb-8">
-                                            <Zap size={14} className="fill-medical-300" /> MediScan AI v4.0
+                                        <div className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-medical-500/10 border border-medical-500/20 text-medical-300 text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] mb-4 md:mb-8">
+                                            <Zap size={12} md:size={14} className="fill-medical-300" /> MediScan AI v4.0
                                         </div>
-                                        <h1 className="text-4xl lg:text-6xl font-black mb-6 leading-[1.1] tracking-tight">
-                                            Tu consulta física, <span className="text-medical-400">ahora digital.</span>
+                                        <h1 className="text-2xl md:text-4xl lg:text-6xl font-black mb-4 md:mb-6 leading-[1.2] md:leading-[1.1] tracking-tight">
+                                            Tu consulta física, <br className="md:hidden" /><span className="text-medical-400">ahora digital.</span>
                                         </h1>
-                                        <p className="text-slate-400 text-lg mb-10 leading-relaxed font-medium">
+                                        <p className="text-slate-400 text-sm md:text-lg mb-6 md:mb-10 leading-relaxed font-medium">
                                             Digitaliza historias clínicas en papel con precisión instantánea. Nuestra IA procesa, extrae y organiza tus datos médicos por ti.
                                         </p>
                                         <div className="flex flex-col sm:flex-row gap-4">
                                             <button
                                                 onClick={() => setIsScanModalOpen(true)}
-                                                className="bg-medical-600 hover:bg-medical-500 text-white px-8 py-4 rounded-2xl font-bold flex items-center justify-center gap-3 transition-all hover:scale-105 active:scale-95 shadow-xl shadow-medical-600/30"
+                                                className="bg-medical-600 hover:bg-medical-500 text-white px-6 md:px-8 py-3 md:py-4 rounded-xl md:rounded-2xl font-bold flex items-center justify-center gap-3 transition-all hover:scale-105 active:scale-95 shadow-xl shadow-medical-600/30 text-sm md:text-base"
                                             >
-                                                Comenzar Smart Scan <Zap size={20} />
+                                                Comenzar Smart Scan <Zap size={18} md:size={20} />
                                             </button>
                                         </div>
                                     </div>
                                 </section>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                    <StatCard title="Pacientes Totales" value={patients.length} icon={Users} trend="+12%" />
-                                    <StatCard title="Uso MediScan AI" value="84%" icon={Zap} trend="+5.2%" color="indigo" />
-                                    <StatCard title="Citas de Hoy" value="12" icon={TrendingUp} trend="-2" color="amber" />
-                                    <StatCard title="Nivel Salud" value="98%" icon={Activity} trend="+1.5%" color="emerald" />
+                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                                    <StatCard title="Pacientes" value={patients.length} icon={Users} trend="+12%" />
+                                    <StatCard title="MediScan AI" value="84%" icon={Zap} trend="+5.2%" color="indigo" />
+                                    <StatCard title="Citas Hoy" value="12" icon={TrendingUp} trend="-2" color="amber" />
+                                    <StatCard title="Salud" value="98%" icon={Activity} trend="+1.5%" color="emerald" />
                                 </div>
 
                                 <div className="space-y-6">
@@ -278,7 +281,7 @@ export default function Dashboard() {
                                 </div>
                             </motion.div>
                         ) : activeTab === 'Citas' ? (
-                            <Appointments />
+                            <Appointments forcedDoctorId={DEMO_DOCTOR_ID} />
                         ) : activeTab === 'Configuración' ? (
                             <Settings />
                         ) : (
@@ -310,6 +313,7 @@ export default function Dashboard() {
                     isOpen={isScanModalOpen}
                     onClose={() => setIsScanModalOpen(false)}
                     onConfirm={handleConfirmScan}
+                    isDemo={true}
                 />
 
                 <PatientDetailModal

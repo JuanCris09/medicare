@@ -4,6 +4,8 @@
 CREATE TABLE IF NOT EXISTS pacientes (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   nombre TEXT NOT NULL,
+  cedula TEXT,
+  email TEXT,
   ultima_cita TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   estado TEXT NOT NULL DEFAULT 'Activo',
   diagnostico TEXT,

@@ -4,6 +4,10 @@ import Dashboard from './pages/Dashboard';
 import PortalLogin from './pages/portal/PortalLogin';
 import PortalDashboard from './pages/portal/PortalDashboard';
 import EmergencyView from './pages/EmergencyView';
+import DoctorPortal from './pages/doctor/DoctorPortal';
+import SecretaryAppointmentsPage from './pages/doctor/SecretaryAppointmentsPage';
+import DoctorLogin from './pages/doctor/DoctorLogin';
+import DoctorSignup from './pages/doctor/DoctorSignup';
 
 export default function App() {
   return (
@@ -21,6 +25,12 @@ export default function App() {
 
         {/* Public Emergency Profile (QR Access) */}
         <Route path="/perfil-emergencia/:token" element={<EmergencyView />} />
+
+        {/* Doctor Portal Routes (Multi-tenant) */}
+        <Route path="/doctor-login" element={<DoctorLogin />} />
+        <Route path="/doctor-signup" element={<DoctorSignup />} />
+        <Route path="/doctor-portal" element={<DoctorPortal />} />
+        <Route path="/doctor-portal/appointments" element={<SecretaryAppointmentsPage />} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
