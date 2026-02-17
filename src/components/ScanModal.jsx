@@ -568,12 +568,12 @@ export default function ScanModal({ isOpen, onClose, onConfirm, isDemo = false }
                                 <button
                                     onClick={handleConfirm}
                                     disabled={isSaving}
-                                    className="flex-1 bg-medical-600 text-white py-4 md:py-5 rounded-xl md:rounded-3xl font-black text-base md:text-lg shadow-xl shadow-medical-600/30 flex items-center justify-center gap-2 md:gap-3 hover:bg-medical-700 active:scale-95 transition-all disabled:opacity-50"
+                                    className="flex-1 bg-medical-600 text-white py-3 md:py-4 rounded-xl md:rounded-2xl font-bold text-sm md:text-base shadow-lg shadow-medical-600/20 flex items-center justify-center gap-2 hover:bg-medical-700 active:scale-95 transition-all disabled:opacity-50 uppercase tracking-wide"
                                 >
                                     {isSaving ? (
-                                        <RefreshCw size={20} md:size={24} className="animate-spin" />
+                                        <RefreshCw size={18} md:size={20} className="animate-spin" />
                                     ) : (
-                                        <><Save size={20} md:size={24} /> GUARDAR Y ENVIAR</>
+                                        <><Save size={18} md:size={20} /> GUARDAR Y ENVIAR</>
                                     )}
                                 </button>
                                 <button

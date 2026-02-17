@@ -1,6 +1,12 @@
 import { Resend } from 'resend';
-import dotenv from 'dotenv';
-dotenv.config();
+
+// Netlify already provides environment variables, but we keep this for local compatibility
+try {
+    const dotenv = await import('dotenv');
+    dotenv.config();
+} catch (e) {
+    // dotenv might not be available in all environments
+}
 
 export const handler = async (event) => {
     // 1. Method check
